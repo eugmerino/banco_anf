@@ -11,19 +11,37 @@ class FixedAssetType(models.Model):
     code = models.CharField(
         max_length=4, 
         unique=True, 
-        verbose_name="Código del tipo de activo fijo")
+        verbose_name="Código del tipo de activo fijo"
+    )
     
     name = models.CharField(
         max_length=100, 
         verbose_name="Nombre del tipo de activo fijo",
         null=False, 
-        blank=False)
+        blank=False
+    )
     
     treatment = models.CharField(
         max_length=3,
         choices=TREATMENT_CHOICES,
         verbose_name="Tratamiento contable",
         default='DEP'
+    )
+
+    percentage = models.DecimalField(
+        max_digits=5,          
+        decimal_places=2,
+        verbose_name="Porcentaje a aplicar",
+        null=True,
+        blank=True,
+        help_text="Porcentaje anual, por ejemplo 10.00 para 10%."
+    )
+
+    life_time = models.PositiveIntegerField(
+        verbose_name="Vida útil (en años)",
+        null=True,
+        blank=True,
+        help_text="Número de años de vida útil; requerido si hay depreciación o amortización."
     )
     
     class Meta:
