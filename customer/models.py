@@ -18,13 +18,13 @@ class Customer(models.Model):
 
     #Datos generales principales
     code = models.CharField(
-        "Código", 
+        "Código del cliente", 
         max_length=20, 
         unique=True,
         editable=False,
         help_text="El código se genera automáticamente"   
     )
-    type = models.CharField(max_length=1, choices=TIPO_CHOICES)
+    type = models.CharField(max_length=2, choices=TIPO_CHOICES)
     institution = models.ForeignKey(
         Institution,
         on_delete=models.CASCADE,
@@ -71,3 +71,33 @@ class Customer(models.Model):
         blank=True, 
         null=True
     )
+
+    class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
+        ordering = ["code"]
+
+    def __str__(self):
+        if self.type == "CN":
+            return f"({self.code}) - {self.first_name} {self.last_name}"
+        else:
+            return f"({self.code}) - {self.company_name}"
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            today = timezone.localtime().date()
+            year = str(today.year)[-2:]
+            month = f"{today.month:02d}"
+
+            prefix = "CN" if self.type == "CN" else "CJ"
+
+            count = Customer.objects.filter(
+                institution=self.institution,
+                type=self.type
+            ).count() + 1
+
+            correlativo = f"{count:03d}"
+
+            self.code = f"{prefix}-{self.institution.code}-{year}{month}-{correlativo}"
+
+        super().save(*args, **kwargs)
