@@ -1,4 +1,7 @@
 from django.db import models
+from organization.models import Department
+from django.db import transaction
+from django.db.models import Max
 
 # Create your models here.
 class FixedAssetType(models.Model):
@@ -63,3 +66,93 @@ class FixedAssetType(models.Model):
         if creating and not self.code:
             self.set_code()
             super().save(update_fields=["code"])
+
+class FixedAsset(models.Model):
+
+    code = models.CharField(
+        max_length=10,
+        verbose_name="Código del activo fijo",
+        blank=True,
+        null=True,
+        help_text="Se autogenera por departamento como 0001, 0002, ..."
+    )
+
+    asset_type = models.ForeignKey(
+        FixedAssetType, 
+        on_delete=models.CASCADE,
+        verbose_name="Tipo de activo fijo"
+    )
+
+    department = models.ForeignKey(
+        Department,
+        on_delete=models.CASCADE,
+        verbose_name="Departamento"
+    )
+    
+    name = models.CharField(
+        max_length=100, 
+        verbose_name="Nombre del activo fijo",
+        null=False, 
+        blank=False
+    )
+    
+    acquisition_date = models.DateField(
+        verbose_name="Fecha de adquisición"
+    )
+    
+    acquisition_cost = models.DecimalField(
+        max_digits=12, 
+        decimal_places=2,
+        verbose_name="Costo de adquisición"
+    )
+    
+    class Meta:
+        verbose_name = "Activo Fijo"
+        verbose_name_plural = "Activos Fijos"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["department", "code"],
+                name="uniq_fixedasset_department_code"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["department", "code"]),
+        ]
+
+    def __str__(self):
+        dept_code = self.department.code if self.department_id else "----"
+        asset_code = self.code or "----"
+        return f"{asset_code}-{dept_code} - {self.name}"
+
+    def _next_code_for_department(self) -> str:
+        """
+        Obtiene el siguiente código de 4 dígitos para el departamento dado.
+        Busca el código máximo existente (como cadena), lo convierte a int
+        y suma 1. Si no hay registros, retorna '0001'.
+        """
+        max_code = (
+            FixedAsset.objects
+            .filter(department=self.department)
+            .aggregate(mx=Max("code"))
+            .get("mx")
+        )
+
+        if not max_code:
+            return "0001"
+
+        try:
+            nxt = int(max_code) + 1
+        except ValueError:
+            # Si por alguna razón el código máximo no es numérico, reiniciamos.
+            nxt = 1
+
+        # 4 dígitos; si algún día quieres más, cambia 4 por 6 u otro valor
+        return f"{nxt:04d}"[:4]
+
+    def save(self, *args, **kwargs):
+        # Usamos una transacción para reducir condiciones de carrera
+        with transaction.atomic():
+            creating = self.pk is None
+            if creating and not self.code:
+                self.code = self._next_code_for_department()
+            super().save(*args, **kwargs)
