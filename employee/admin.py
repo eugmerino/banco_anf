@@ -26,11 +26,3 @@ class CreditAdvisorAdmin(admin.ModelAdmin):
             )
         }),
     )
-
-    def get_readonly_fields(self, request, obj=None):
-        """
-        Evita que el campo código se edite al modificar un registro existente.
-        """
-        if obj:
-            return self.readonly_fields + ('institution',)
-        return self.readonly_fields

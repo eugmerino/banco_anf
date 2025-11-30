@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'authentication',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -72,6 +73,18 @@ TEMPLATES = [
         },
     },
 ]
+
+
+JAZZMIN_SETTINGS = {
+    "site_logo": "img/logo/banco_anf.png",
+    "icons": {
+        "auth.user": "fas fa-user",
+        "customer.Customer": "fas fa-user",
+        "employee.CreditAdvisor": "fas fa-user-tie",
+    },
+    "custom_css": "css/admin_custom.css",
+}
+
 
 WSGI_APPLICATION = 'banco_anf.wsgi.application'
 
