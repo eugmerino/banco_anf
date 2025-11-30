@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from organization.models import Institution
 from employee.models import CreditAdvisor
+from django.core.exceptions import ValidationError
 
 
 # Base para datos comunes de un persona natural
@@ -17,10 +18,10 @@ class NaturalPersonBase(models.Model):
     last_name = models.CharField("Apellidos", max_length=200)
     dui = models.CharField("DUI", max_length=10, unique=True)
     marital_status = models.CharField("Estado Civil", max_length=1, choices=MARITAL_STATUS_CHOICES)
-    address = models.TextField("Dirección", blank=True, null=True)
+    address = models.TextField("Dirección")
     income = models.DecimalField("Ingresos", max_digits=12, decimal_places=2, default=0.00)
     expenses = models.DecimalField("Egresos", max_digits=12, decimal_places=2, default=0.00)
-    phone_number = models.CharField("Teléfono", max_length=15, blank=True, null=True)
+    phone_number = models.CharField("Teléfono", max_length=15, unique=True)
     email = models.EmailField("Correo Electrónico", blank=True, null=True)
 
     class Meta:
@@ -48,9 +49,9 @@ class CustomerBase(models.Model):
         verbose_name="Asesor de Crédito",
         help_text="Asesor de crédito asignado al cliente"
     )
-    phone_number = models.CharField("Teléfono", max_length=15, blank=True, null=True)
-    email = models.EmailField("Correo Electrónico", blank=True, null=True)
-    address = models.TextField("Dirección", blank=True, null=True)
+    phone_number = models.CharField("Teléfono", max_length=15)
+    email = models.EmailField("Correo Electrónico")
+    address = models.TextField("Dirección")
 
     class Meta:
         abstract = True
@@ -64,7 +65,16 @@ class NaturalCustomer(CustomerBase, NaturalPersonBase):
         verbose_name_plural = "Clientes Naturales"
         ordering = ["code"]
 
+    def clean(self):
+        # Validación de ingresos > egresos
+        if self.income <= self.expenses:
+            raise ValidationError({
+                "income": "Los ingresos deben ser mayores a los egresos.",
+                "expenses": "Los egresos no pueden ser mayores que los ingresos."
+            })
+
     def save(self, *args, **kwargs):
+        self.full_clean()  # llama a clean antes de guardar
         if not self.code:
             today = timezone.localtime().date()
             year = str(today.year)[-2:]
@@ -83,8 +93,6 @@ class JuridicalCustomer(CustomerBase):
     pdf_financial_information = models.FileField(
         "Información Financiera (PDF)",
         upload_to="customer/financial_info/",
-        blank=True,
-        null=True,
         help_text="Archivo PDF con la información financiera de la empresa"
     )
 
@@ -118,13 +126,22 @@ class Guarantor(NaturalPersonBase):
     relationship = models.CharField(
         "Relación con el cliente",
         max_length=50,
-        blank=True,
-        null=True
     )
 
     class Meta:
         verbose_name = "Fiador"
         verbose_name_plural = "Fiadores"
+
+    def clean(self):
+        if self.income <= self.expenses:
+            raise ValidationError({
+                "income": "Los ingresos deben ser mayores a los egresos.",
+                "expenses": "Los egresos no pueden ser mayores que los ingresos."
+            })
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} - Fiador de {self.customer}"

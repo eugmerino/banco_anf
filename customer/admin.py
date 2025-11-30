@@ -12,15 +12,19 @@ class NaturalCustomerAdmin(admin.ModelAdmin):
     search_fields = ("code", "first_name", "last_name", "dui")
 
     fieldsets = (
-        ("Datos Principales", {
+        ("Datos de Colocación", {
             "fields": ("institution", "adviser")
         }),
         ("Información Personal", {
             "fields": ("first_name", "last_name", "dui", "marital_status")
         }),
-        ("Contacto y Finanzas", {
-            "fields": ("phone_number", "email", "address", "income", "expenses")
+        ("Contacto", {
+            "fields": ("phone_number", "email", "address")
         }),
+        ("Finanzas", {
+            "fields": ("income", "expenses")
+        }),
+
     )
 
 
@@ -34,11 +38,14 @@ class JuridicalCustomerAdmin(admin.ModelAdmin):
     search_fields = ("code", "company_name")
 
     fieldsets = (
-        ("Datos Principales", {
+        ("Datos de Colocación", {
             "fields": ("institution", "adviser")
         }),
         ("Información de la Empresa", {
-            "fields": ("company_name", "phone_number", "email", "address", "pdf_financial_information")
+            "fields": ("company_name", "phone_number", "email", "address")
+        }),
+        ("Información Financiera", {
+            "fields": ("pdf_financial_information",)
         }),
     )
 
@@ -56,11 +63,14 @@ class GuarantorAdmin(admin.ModelAdmin):
         ("Datos Personales", {
             "fields": ("first_name", "last_name", "dui", "marital_status")
         }),
-        ("Contacto y Finanzas", {
-            "fields": ("phone_number", "email", "address", "income", "expenses")
+        ("Contacto", {
+            "fields": ("phone_number", "email", "address")
         }),
         ("Información de la Garantía", {
             "fields": ("customer", "relationship")
+        }),
+        ("Finanzas", {
+            "fields": ("income", "expenses")
         }),
     )
 
