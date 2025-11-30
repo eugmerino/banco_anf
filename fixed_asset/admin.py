@@ -55,7 +55,7 @@ class FixedAssetAdmin(admin.ModelAdmin):
         dept_code = obj.department.code if obj.department_id and obj.department.code else "----"
         typ_code = obj.asset_type.code if obj.asset_type_id and obj.asset_type.code else "----"
         inst_code = obj.department.institution.code if obj.department_id and obj.department.institution and obj.department.institution.code else "----"
-        return f"{asset_code}-{dept_code}-{typ_code}-{inst_code}"
+        return f"{inst_code}-{dept_code}-{typ_code}-{asset_code}"
 
     full_code.short_description = "Código completo del activo fijo"
 
