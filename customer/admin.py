@@ -1,85 +1,67 @@
 from django.contrib import admin
-from django import forms
-from .models import Customer
+from .models import NaturalCustomer, JuridicalCustomer, Guarantor
 
 
-class CustomerAdminForm(forms.ModelForm):
-    class Meta:
-        model = Customer
-        fields = '__all__'
-
-    class Media:
-        js = ("admin/js/customer_type_toggle.js",)  # archivo JS opcional para ocultar campos visualmente
-
-
-@admin.register(Customer)
-class CustomerAdmin(admin.ModelAdmin):
-    form = CustomerAdminForm
-    list_display = ("code", "first_name", "last_name", "type", "institution", "adviser")
-    list_filter = ("type", "institution")
+# ----------------------------
+# Admin para Cliente Natural
+# ----------------------------
+@admin.register(NaturalCustomer)
+class NaturalCustomerAdmin(admin.ModelAdmin):
+    list_display = ("code", "first_name", "last_name", "institution", "adviser")
+    list_filter = ("institution", "adviser")
     search_fields = ("code", "first_name", "last_name", "dui")
 
-    # ----------------------------
-    # FIELDSETS DINÁMICOS
-    # ----------------------------
-    def get_fieldsets(self, request, obj=None):
-        """
-        Este método define qué campos mostrar dependiendo del valor del tipo
-        cuando se edita o crea el objeto.
-        """
+    fieldsets = (
+        ("Datos Principales", {
+            "fields": ("institution", "adviser")
+        }),
+        ("Información Personal", {
+            "fields": ("first_name", "last_name", "dui", "marital_status")
+        }),
+        ("Contacto y Finanzas", {
+            "fields": ("phone_number", "email", "address", "income", "expenses")
+        }),
+    )
 
-        # campos siempre visibles (primera parte del form)
-        main_fields = (
-            "type",
-            "institution",
-            "adviser",
-        )
 
-        common_fields = (
-            "phone_number",
-            "email",
-            "address",
-            "company_name",
-        )
+# ----------------------------
+# Admin para Cliente Jurídico
+# ----------------------------
+@admin.register(JuridicalCustomer)
+class JuridicalCustomerAdmin(admin.ModelAdmin):
+    list_display = ("code", "company_name", "institution", "adviser")
+    list_filter = ("institution", "adviser")
+    search_fields = ("code", "company_name")
 
-        natural_fields = (
-            "first_name",
-            "last_name",
-            "dui",
-            "marital_status",
-            "income",
-            "expenses",
-        )
+    fieldsets = (
+        ("Datos Principales", {
+            "fields": ("institution", "adviser")
+        }),
+        ("Información de la Empresa", {
+            "fields": ("company_name", "phone_number", "email", "address", "pdf_financial_information")
+        }),
+    )
 
-        juridico_fields = (
-            "pdf_financial_information",
-        )
 
-        # Si estamos editando un cliente existente
-        if obj:
-            if obj.type == "CN":  # Natural
-                return [
-                    ("Datos principales", {"fields": main_fields}),
-                    ("Datos comunes", {"fields": common_fields}),
-                    ("Datos del cliente natural", {"fields": natural_fields}),
-                ]
+# ----------------------------
+# Admin para Fiador
+# ----------------------------
+@admin.register(Guarantor)
+class GuarantorAdmin(admin.ModelAdmin):
+    list_display = ("first_name", "last_name", "customer", "relationship")
+    list_filter = ("customer",)
+    search_fields = ("first_name", "last_name", "dui", "customer__code")
 
-            else:  # Jurídico
-                return [
-                    ("Datos principales", {"fields": main_fields}),
-                    ("Datos comunes", {"fields": common_fields}),
-                    ("Datos del cliente jurídico", {"fields": juridico_fields}),
-                ]
+    fieldsets = (
+        ("Datos Personales", {
+            "fields": ("first_name", "last_name", "dui", "marital_status")
+        }),
+        ("Contacto y Finanzas", {
+            "fields": ("phone_number", "email", "address", "income", "expenses")
+        }),
+        ("Información de la Garantía", {
+            "fields": ("customer", "relationship")
+        }),
+    )
 
-        # Si estamos creando un cliente → solo mostrar la primera parte
-        return [
-            ("Datos principales", {"fields": main_fields}),
-        ]
-
-    # ----------------------------
-    # HABILITAR CAMPOS DINÁMICOS AL CREAR
-    # ----------------------------
-    def get_fields(self, request, obj=None):
-        """Evita que Django use el orden estándar y respeta los fieldsets."""
-        return [field for fs in self.get_fieldsets(request, obj) for field in fs[1]["fields"]]
 

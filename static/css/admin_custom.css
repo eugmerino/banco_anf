@@ -1,0 +1,193 @@
+/* ============================
+   TEMA CORPORATIVO BANCO SUAVE
+   ============================ */
+
+:root {
+    --bank-primary: #1B8F47;       /* Verde elegante */
+    --bank-secondary: #145C30;     /* Verde oscuro suave */
+    --bank-light: #CFEBDD;         /* Verde pastel suave */
+    --bank-bg: #F5F7F5;            /* Gris claro profesional */
+    --bank-dark-text: #1a1a1a;     /* Texto principal */
+}
+
+/* -----------------------------
+   NAVBAR (suave y profesional)
+   ----------------------------- */
+.navbar.navbar-static-top {
+    background-color: var(--bank-green) !important;
+    border-bottom: 2px solid var(--bank-green-dark) !important;
+}
+
+.navbar.navbar-static-top a,
+.navbar.navbar-static-top .navbar-nav > li > a {
+    color: var(--bank-white) !important;
+}
+
+.navbar.navbar-static-top a:hover {
+    background-color: var(--bank-green-dark) !important;
+    color: var(--bank-white) !important;
+}
+
+
+/* -----------------------------
+   SIDEBAR (no tocamos links)
+   ----------------------------- */
+.main-sidebar {
+    background-color: var(--bank-secondary) !important;
+}
+
+/* -----------------------------
+   BACKGROUND GENERAL
+   ----------------------------- */
+.content-wrapper {
+    background-color: var(--bank-bg) !important;
+    color: var(--bank-dark-text) !important;
+}
+
+/* -----------------------------
+   NO TOCAR LINKS DEL MENU
+   Pero sí del contenido.
+   ----------------------------- */
+
+/* LINKS DEL CONTENIDO GENERAL */
+.content a,
+.card-body a,
+.table a,
+.breadcrumb a {
+    color: var(white) !important;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+/* FIX: LINKS DE LOS MENSAJES DE DJANGO */
+.alert a {
+    text-decoration: underline !important;
+    color: inherit !important;
+    font-weight: 600 !important;
+}
+
+
+/* LINKS AZULES FEOS DE DJANGO → REEMPLAZADOS */
+a:link,
+a:visited {
+    color: var(white);
+}
+
+/* Evitamos modificar menú */
+.sidebar-menu a {
+    color: inherit !important;
+}
+
+/* -----------------------------
+   CARDS Y TABLAS
+   ----------------------------- */
+.card {
+    border-radius: 10px;
+    border: 1px solid #e6e6e6;
+    background: white !important;
+}
+
+.card-header {
+    background: var(--bank-light) !important;
+    border-bottom: 1px solid #dfe8e0;
+    font-weight: 600;
+    color: var(--bank-secondary);
+}
+
+.table thead tr {
+    background-color: var(--bank-primary) !important;
+    color: white !important;
+}
+
+/* =============================
+   FIX COMPLETO PARA ORDENAMIENTO
+   ============================= */
+
+/* Texto del th */
+table.dataTable thead th,
+.table thead th {
+    color: white !important;
+}
+
+/* El link */
+table.dataTable thead th a,
+.table thead th a {
+    color: white !important;
+}
+
+/* Iconos de ordenamiento (Jazzmin/AdminLTE) */
+table.dataTable thead th.sorting:after,
+table.dataTable thead th.sorting_asc:after,
+table.dataTable thead th.sorting_desc:after,
+table.dataTable thead th.sorting_asc_disabled:after,
+table.dataTable thead th.sorting_desc_disabled:after {
+    color: white !important;
+    opacity: 1 !important;
+}
+
+/* Algunos builds de Jazzmin usan before en lugar de after */
+table.dataTable thead th.sorting:before,
+table.dataTable thead th.sorting_asc:before,
+table.dataTable thead th.sorting_desc:before {
+    color: white !important;
+    opacity: 1 !important;
+}
+
+/* -----------------------------
+   FORMULARIOS
+   ----------------------------- */
+.form-control:focus {
+    border-color: var(--bank-primary) !important;
+    box-shadow: 0 0 4px rgba(27, 143, 71, 0.3) !important;
+}
+
+/* -----------------------------
+   FOOTER
+   ----------------------------- */
+.main-footer {
+    background-color: #cfebdd !important;
+    color: black;
+}
+
+/* -----------------------------
+   LOGIN (más limpio)
+   ----------------------------- */
+.login-page {
+    background: var(--bank-bg) !important;
+}
+
+.login-logo a {
+    color: var(--bank-primary) !important;
+    font-weight: 700;
+}
+
+.btn-primary {
+    background-color: var(--bank-primary) !important;
+    border-color: var(--bank-primary) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--bank-secondary) !important;
+}
+
+/* -----------------------------
+   SCROLLBAR
+   ----------------------------- */
+::-webkit-scrollbar {
+    width: 7px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bank-primary);
+    border-radius: 10px;
+}
+
+.login-logo img {
+    width: 200px;   /* Ajusta a tu gusto */
+    height: auto;
+}
+
+
+
+
+
