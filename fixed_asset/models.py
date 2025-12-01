@@ -156,3 +156,33 @@ class FixedAsset(models.Model):
             if creating and not self.code:
                 self.code = self._next_code_for_department()
             super().save(*args, **kwargs)
+
+
+class FixedAssetCharacteristics(models.Model):
+    fixed_asset = models.ForeignKey(
+        FixedAsset,
+        on_delete=models.CASCADE,
+        verbose_name="Activo fijo",
+        related_name="characteristics"
+    )
+
+    characteristics = models.TextField(
+        verbose_name="Características del activo fijo",
+        help_text="Describa las características específicas del activo fijo."
+    )
+
+    class Meta:
+        verbose_name = "Característica"
+        verbose_name_plural = "Características"
+
+    def __str__(self):
+        return f"Características del Activo Fijo: {self.fixed_asset}"
+    
+class Reportes(models.Model):
+    class Meta:
+        managed = False
+        verbose_name = "Reporte"
+        verbose_name_plural = "Reportes"
+
+    def __str__(self):
+        return "Reportes"
