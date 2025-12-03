@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<p>
+    Aquí va el contenido del <strong>Reporte de Depreciaciones</strong>.
+    Puedes poner tablas, filtros, gráficos, lo que necesites.
+</p>
+
+{# Ejemplo de tabla vacía para que luego la llenes con datos reales #}
+<table class="adminlist">
+    <thead>
+        <tr>
+            <th>Código</th>
+            <th>Activo</th>
+            <th>Departamento</th>
+            <th>Costo</th>
+            <th>Depreciación acumulada</th>
+            <th>Vida útil</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td colspan="6" style="text-align:center; color:#777;">
+                Aquí puedes mostrar los datos de depreciación.
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<a href="../" class="button">
+    ← Volver al menú de reportes
+</a>
+{% endblock %}

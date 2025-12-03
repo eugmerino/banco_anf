@@ -180,8 +180,10 @@ admin.site.register(FixedAsset, FixedAssetAdmin)
 @admin.register(Reportes)
 class ReportesAdmin(admin.ModelAdmin):
     """
-    Admin que no lista registros, sino una página con links a reportes.
-    NO usa ChangeList, así evitamos que toque la base de datos.
+    Admin que muestra un menú de reportes y dos vistas internas:
+    - Depreciaciones
+    - Amortizaciones
+    Todo se mantiene dentro del admin.
     """
     change_list_template = "admin/reportes_changelist.html"
 
@@ -197,41 +199,89 @@ class ReportesAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         """
-        Por seguridad, devolvemos un queryset vacío, pero en realidad
-        nunca lo usamos porque no llamamos a super().changelist_view().
+        Devolvemos un queryset vacío solo para que el admin no intente
+        listar registros reales (el modelo es solo 'virtual').
         """
         return Reportes.objects.none()
 
-    def changelist_view(self, request, extra_context=None):
-        """
-        Renderizamos la plantilla directamente, sin pasar por la lógica
-        estándar de ChangeList (que intenta leer la tabla en BD).
-        """
-        extra_context = extra_context or {}
-        extra_context["reportes"] = [
-            {
-                "nombre": "Activos por Departamento (PDF)",
-                "descripcion": "Listado de activos fijos agrupados por departamento.",
-                "url": "/reportes/activos-por-departamento/",  # tu URL
-            },
-            {
-                "nombre": "Activos depreciados este año",
-                "descripcion": "Reporte de activos con depreciación en el año actual.",
-                "url": "/reportes/depreciacion-actual/",
-            },
-            {
-                "nombre": "Inventario de Activos",
-                "descripcion": "Resumen general de todos los activos fijos.",
-                "url": "/reportes/inventario-activos/",
-            },
-            # Agrega más reportes aquí...
+    # ---- URLs personalizadas dentro del admin ----
+    def get_urls(self):
+        from django.urls import path
+        urls = super().get_urls()
+
+        app_label = self.model._meta.app_label
+        model_name = self.model._meta.model_name
+
+        custom_urls = [
+            path(
+                "depreciaciones/",
+                self.admin_site.admin_view(self.depreciaciones_view),
+                name=f"{app_label}_{model_name}_depreciaciones",
+            ),
+            path(
+                "amortizaciones/",
+                self.admin_site.admin_view(self.amortizaciones_view),
+                name=f"{app_label}_{model_name}_amortizaciones",
+            ),
         ]
+        # Nuestras URLs primero, luego las estándar del admin
+        return custom_urls + urls
+
+    # ---- Vista principal: menú de reportes ----
+    def changelist_view(self, request, extra_context=None):
+        from django.urls import reverse
+
+        app_label = self.model._meta.app_label
+        model_name = self.model._meta.model_name
+
+        depreciaciones_url = reverse(
+            f"admin:{app_label}_{model_name}_depreciaciones"
+        )
+        amortizaciones_url = reverse(
+            f"admin:{app_label}_{model_name}_amortizaciones"
+        )
 
         context = {
-            **self.admin_site.each_context(request),  # contexto estándar del admin
+            **self.admin_site.each_context(request),
             "opts": self.model._meta,
             "title": "Reportes",
-            **extra_context,
+            "depreciaciones_url": depreciaciones_url,
+            "amortizaciones_url": amortizaciones_url,
         }
 
         return TemplateResponse(request, self.change_list_template, context)
+
+    # ---- Vista de DEPRECIACIONES ----
+    def depreciaciones_view(self, request):
+        """
+        Aquí luego puedes calcular y mandar datos reales de depreciaciones.
+        Por ahora solo levanta una plantilla estática.
+        """
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": "Reporte de Depreciaciones",
+            # aquí puedes agregar más datos al contexto
+        }
+        return TemplateResponse(
+            request,
+            "admin/reportes_depreciaciones.html",
+            context,
+        )
+
+    # ---- Vista de AMORTIZACIONES ----
+    def amortizaciones_view(self, request):
+        """
+        Igual que depreciaciones, pero para amortizaciones.
+        """
+        context = {
+            **self.admin_site.each_context(request),
+            "opts": self.model._meta,
+            "title": "Reporte de Amortizaciones",
+            # aquí puedes agregar más datos al contexto
+        }
+        return TemplateResponse(
+            request,
+            "admin/reportes_amortizaciones.html",
+            context,
+        )

@@ -1,27 +1,36 @@
+{# templates/admin/reportes_changelist.html #}
 {% extends "admin/change_list.html" %}
 {% load i18n %}
 
 {% block content %}
 <div class="app-reportes">
-    <h1>Reportes</h1>
+    <h1>Reportes de Activos Fijos</h1>
     <p>Selecciona el reporte que deseas consultar:</p>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
-        {% for rep in reportes %}
-            <div style="border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: #fff;">
-                <h2 style="margin-top: 0; font-size: 16px;">
-                    <a href="{{ rep.url }}" target="_blank">{{ rep.nombre }}</a>
-                </h2>
-                {% if rep.descripcion %}
-                    <p style="font-size: 13px; color: #555;">{{ rep.descripcion }}</p>
-                {% endif %}
-                <a href="{{ rep.url }}" target="_blank" style="font-size: 13px;">
-                    Ver reporte →
-                </a>
-            </div>
-        {% empty %}
-            <p>No hay reportes configurados.</p>
-        {% endfor %}
+        <div style="border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: #fff;">
+            <h2 style="margin-top: 0; font-size: 16px;">
+                <a href="{{ depreciaciones_url }}">{{ _("Depreciaciones") }}</a>
+            </h2>
+            <p style="font-size: 13px; color: #555;">
+                Reporte de depreciaciones de activos fijos.
+            </p>
+            <a href="{{ depreciaciones_url }}" style="font-size: 13px;">
+                Ver reporte →
+            </a>
+        </div>
+
+        <div style="border: 1px solid #ddd; border-radius: 6px; padding: 12px; background: #fff;">
+            <h2 style="margin-top: 0; font-size: 16px;">
+                <a href="{{ amortizaciones_url }}">{{ _("Amortizaciones") }}</a>
+            </h2>
+            <p style="font-size: 13px; color: #555;">
+                Reporte de amortizaciones de activos intangibles u otros.
+            </p>
+            <a href="{{ amortizaciones_url }}" style="font-size: 13px;">
+                Ver reporte →
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}
