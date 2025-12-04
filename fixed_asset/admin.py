@@ -1,6 +1,10 @@
+from urllib import request
 from django.contrib import admin
 from django import forms
 from django.template.response import TemplateResponse
+from django.contrib.admin.widgets import AutocompleteSelect
+from datetime import date
+from decimal import Decimal, ROUND_HALF_UP
 
 from .models import (
     FixedAssetType,
@@ -18,14 +22,15 @@ class FixedAssetTypeAdminForm(forms.ModelForm):
     class Meta:
         model = FixedAssetType
         # No pedimos 'code' al crear
-        fields = ["name", "treatment", "percentage", "life_time"]
+        fields = ["name", "treatment", "life_time"]
 
 
 class FixedAssetTypeAdmin(admin.ModelAdmin):
     form = FixedAssetTypeAdminForm
     list_display = ("code", "name", "treatment", "percentage", "life_time")
-    search_fields = ("code", "name")
+    search_fields = ("code", "name", "treatment")
     ordering = ("code",)
+    readonly_fields = ("code", "percentage") 
 
     def get_fields(self, request, obj=None):
         # Al crear: no mostramos el código
@@ -84,7 +89,7 @@ class FixedAssetAdmin(admin.ModelAdmin):
         "acquisition_date",
         "acquisition_cost",
     )
-    search_fields = ("code", "name")
+    search_fields = ("code", "name", "department__name", "asset_type__name")
     ordering = ("name", "code")
 
     inlines = [FixedAssetCharacteristicsInline]
@@ -110,6 +115,8 @@ class FixedAssetAdmin(admin.ModelAdmin):
             "acquisition_date",
             "acquisition_cost",
         )
+    
+    readonly_fields = ("code",)
 
     def save_model(self, request, obj, form, change):
         """
@@ -176,6 +183,201 @@ class FixedAssetAdmin(admin.ModelAdmin):
 admin.site.register(FixedAsset, FixedAssetAdmin)
 
 
+class DepreciacionesFiltroForm(forms.Form):
+    fixed_asset = forms.ModelChoiceField(
+        queryset=FixedAsset.objects
+            .filter(asset_type__treatment="DEP")
+            .select_related("department", "asset_type")
+            .order_by("department__name", "name"),
+        required=False,
+        label="Activo fijo",
+        widget=forms.Select(
+            attrs={
+                "class": "vSelect",           # estilo admin
+                "style": "min-width: 320px;", # que no quede enano
+            }
+        )
+    )
+
+class AmortizacionesFiltroForm(forms.Form):
+    fixed_asset = forms.ModelChoiceField(
+        queryset=FixedAsset.objects
+            .filter(asset_type__treatment="AMO")  # ← SOLO activos con tratamiento AMO
+            .select_related("department", "asset_type")
+            .order_by("department__name", "name"),
+        required=False,
+        label="Activo / Intangible",
+        widget=forms.Select(
+            attrs={
+                "class": "vSelect",           # estilo admin
+                "style": "min-width: 320px;", # que no quede enano
+            }
+        )
+    )
+
+
+def calcular_depreciacion_linea_recta(activo: FixedAsset, fecha_corte: date | None = None) -> dict:
+    """
+    Calcula depreciación en línea recta para un activo fijo.
+
+    Retorna un dict con:
+    - annual_depr
+    - monthly_depr
+    - daily_depr
+    - accumulated_depr
+    - book_value
+    - elapsed_days
+    - life_days
+    """
+    if fecha_corte is None:
+        fecha_corte = date.today()
+
+    tipo = activo.asset_type
+    vida_anios = tipo.life_time
+
+    # Si no tiene vida útil o el tratamiento no es depreciación, todo 0
+    if not vida_anios or tipo.treatment != "DEP":
+        return {
+            "annual_depr": Decimal("0.00"),
+            "monthly_depr": Decimal("0.00"),
+            "daily_depr": Decimal("0.00"),
+            "accumulated_depr": Decimal("0.00"),
+            "book_value": activo.acquisition_cost,
+            "elapsed_days": 0,
+            "life_days": 0,
+        }
+
+    costo = activo.acquisition_cost
+    base_depreciable = costo  # si luego quieres valor residual, aquí se resta
+    vida_dias = vida_anios * 365
+
+    # Depreciación anual: costo / vida útil
+    annual_depr = (base_depreciable / Decimal(vida_anios)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    # Depreciación mensual
+    monthly_depr = (annual_depr / Decimal("12")).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    # Depreciación diaria
+    daily_depr = (base_depreciable / Decimal(vida_dias)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    # Días transcurridos desde la adquisición hasta la fecha de corte (capados a la vida útil)
+    if fecha_corte <= activo.acquisition_date:
+        elapsed_days = 0
+    else:
+        elapsed_days = (fecha_corte - activo.acquisition_date).days
+        if elapsed_days > vida_dias:
+            elapsed_days = vida_dias
+
+    # Depreciación acumulada
+    accumulated_depr = (daily_depr * Decimal(elapsed_days)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    # No dejar que la acumulada supere el costo
+    if accumulated_depr > base_depreciable:
+        accumulated_depr = base_depreciable
+
+    # Valor en libros = costo - depreciación acumulada
+    book_value = (base_depreciable - accumulated_depr).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    return {
+        "annual_depr": annual_depr,
+        "monthly_depr": monthly_depr,
+        "daily_depr": daily_depr,
+        "accumulated_depr": accumulated_depr,
+        "book_value": book_value,
+        "elapsed_days": elapsed_days,
+        "life_days": vida_dias,
+    }
+
+def calcular_amortizacion_linea_recta(activo: FixedAsset, fecha_corte: date | None = None) -> dict:
+    """
+    Calcula amortización en línea recta para un activo intangible (tratamiento AMO).
+
+    Retorna un dict con:
+    - annual_amo
+    - monthly_amo
+    - daily_amo
+    - accumulated_amo
+    - book_value
+    - elapsed_days
+    - life_days
+    """
+    if fecha_corte is None:
+        fecha_corte = date.today()
+
+    tipo = activo.asset_type
+    vida_anios = tipo.life_time
+
+    # Si no tiene vida útil o el tratamiento no es AMO, todo 0
+    if not vida_anios or tipo.treatment != "AMO":
+        return {
+            "annual_amo": Decimal("0.00"),
+            "monthly_amo": Decimal("0.00"),
+            "daily_amo": Decimal("0.00"),
+            "accumulated_amo": Decimal("0.00"),
+            "book_value": activo.acquisition_cost,
+            "elapsed_days": 0,
+            "life_days": 0,
+        }
+
+    costo = activo.acquisition_cost
+    base_amortizable = costo
+    vida_dias = vida_anios * 365
+
+    # Amortización anual: costo / vida útil
+    annual_amo = (base_amortizable / Decimal(vida_anios)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    # Amortización mensual
+    monthly_amo = (annual_amo / Decimal("12")).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    # Amortización diaria
+    daily_amo = (base_amortizable / Decimal(vida_dias)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    # Días transcurridos
+    if fecha_corte <= activo.acquisition_date:
+        elapsed_days = 0
+    else:
+        elapsed_days = (fecha_corte - activo.acquisition_date).days
+        if elapsed_days > vida_dias:
+            elapsed_days = vida_dias
+
+    # Amortización acumulada
+    accumulated_amo = (daily_amo * Decimal(elapsed_days)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    if accumulated_amo > base_amortizable:
+        accumulated_amo = base_amortizable
+
+    # Valor en libros
+    book_value = (base_amortizable - accumulated_amo).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
+
+    return {
+        "annual_amo": annual_amo,
+        "monthly_amo": monthly_amo,
+        "daily_amo": daily_amo,
+        "accumulated_amo": accumulated_amo,
+        "book_value": book_value,
+        "elapsed_days": elapsed_days,
+        "life_days": vida_dias,
+    }
 
 @admin.register(Reportes)
 class ReportesAdmin(admin.ModelAdmin):
@@ -253,15 +455,53 @@ class ReportesAdmin(admin.ModelAdmin):
 
     # ---- Vista de DEPRECIACIONES ----
     def depreciaciones_view(self, request):
-        """
-        Aquí luego puedes calcular y mandar datos reales de depreciaciones.
-        Por ahora solo levanta una plantilla estática.
-        """
+        selected_asset = None
+        table_data = None
+
+        if request.method == "POST":
+            form = DepreciacionesFiltroForm(request.POST)
+            if form.is_valid():
+                selected_asset = form.cleaned_data.get("fixed_asset")
+                if selected_asset:
+                    # 👉 Calculamos la depreciación a la fecha de hoy (puedes cambiarla a una fecha de corte)
+                    info_dep = calcular_depreciacion_linea_recta(selected_asset, date.today())
+
+                    code_fixedAsset = selected_asset.code or "----"
+                    dept_code = selected_asset.department.code if selected_asset.department_id and getattr(selected_asset.department, "code", None) else "----"
+                    typ_code = selected_asset.asset_type.code if selected_asset.asset_type_id and getattr(selected_asset.asset_type, "code", None) else "----"
+                    inst_code = (
+                        selected_asset.department.institution.code if selected_asset.department_id and selected_asset.department.institution_id and getattr(selected_asset.department.institution, "code", None) else "----"
+                    )
+
+                    code_full = f"{inst_code}-{dept_code}-{typ_code}-{code_fixedAsset}"
+
+                    table_data = [
+                        {
+                            "code": code_full,
+                            "name": selected_asset.name,
+                            "department": selected_asset.department.name,
+                            "cost": selected_asset.acquisition_cost,
+                            "life_time": selected_asset.asset_type.life_time,
+                            "acquisition_date": selected_asset.acquisition_date,
+                            "annual_depr": info_dep["annual_depr"],
+                            "monthly_depr": info_dep["monthly_depr"],
+                            "daily_depr": info_dep["daily_depr"],
+                            "accum_depr": info_dep["accumulated_depr"],
+                            "book_value": info_dep["book_value"],
+                            "elapsed_days": info_dep["elapsed_days"],
+                            "life_days": info_dep["life_days"],
+                        }
+                    ]
+        else:
+            form = DepreciacionesFiltroForm()
+
         context = {
             **self.admin_site.each_context(request),
             "opts": self.model._meta,
             "title": "Reporte de Depreciaciones",
-            # aquí puedes agregar más datos al contexto
+            "form": form,
+            "selected_asset": selected_asset,
+            "table_data": table_data,
         }
         return TemplateResponse(
             request,
@@ -269,16 +509,60 @@ class ReportesAdmin(admin.ModelAdmin):
             context,
         )
 
+
+
     # ---- Vista de AMORTIZACIONES ----
     def amortizaciones_view(self, request):
-        """
-        Igual que depreciaciones, pero para amortizaciones.
-        """
+        selected_asset = None
+        table_data = None
+
+        if request.method == "POST":
+            form = AmortizacionesFiltroForm(request.POST)
+            if form.is_valid():
+                selected_asset = form.cleaned_data.get("fixed_asset")
+                if selected_asset:
+                    info_amo = calcular_amortizacion_linea_recta(selected_asset, date.today())
+
+                    code_fixedAsset = selected_asset.code or "----"
+                    dept_code = selected_asset.department.code if selected_asset.department_id and getattr(selected_asset.department, "code", None) else "----"
+                    typ_code = selected_asset.asset_type.code if selected_asset.asset_type_id and getattr(selected_asset.asset_type, "code", None) else "----"
+                    inst_code = (
+                        selected_asset.department.institution.code
+                        if selected_asset.department_id
+                        and selected_asset.department.institution_id
+                        and getattr(selected_asset.department.institution, "code", None)
+                        else "----"
+                    )
+
+                    code_full = f"{inst_code}-{dept_code}-{typ_code}-{code_fixedAsset}"
+
+                    table_data = [
+                        {
+                            "code": code_full,
+                            "name": selected_asset.name,
+                            "department": selected_asset.department.name,
+                            "cost": selected_asset.acquisition_cost,
+                            "life_time": selected_asset.asset_type.life_time,
+                            "acquisition_date": selected_asset.acquisition_date,
+                            "annual_amo": info_amo["annual_amo"],
+                            "monthly_amo": info_amo["monthly_amo"],
+                            "daily_amo": info_amo["daily_amo"],
+                            "accum_amo": info_amo["accumulated_amo"],
+                            "book_value": info_amo["book_value"],
+                            "elapsed_days": info_amo["elapsed_days"],
+                            "life_days": info_amo["life_days"],
+                        }
+                    ]
+        else:
+            form = AmortizacionesFiltroForm()
+
         context = {
             **self.admin_site.each_context(request),
             "opts": self.model._meta,
             "title": "Reporte de Amortizaciones",
-            # aquí puedes agregar más datos al contexto
+            "form": form,
+            "selected_asset": selected_asset,
+            "table_data": table_data,
         }
         return TemplateResponse(
             request,

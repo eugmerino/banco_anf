@@ -2,6 +2,7 @@ from django.db import models
 from organization.models import Department
 from django.db import transaction
 from django.db.models import Max
+from decimal import Decimal, ROUND_HALF_UP
 
 # Create your models here.
 class FixedAssetType(models.Model):
@@ -37,6 +38,7 @@ class FixedAssetType(models.Model):
         verbose_name="Porcentaje a aplicar",
         null=True,
         blank=True,
+        editable=False,
         help_text="Porcentaje anual, por ejemplo 10.00 para 10%."
     )
 
@@ -57,12 +59,31 @@ class FixedAssetType(models.Model):
     def set_code(self):
         if not self.code and self.id:
             self.code = f"{self.id:04d}"
-    
-    def save(self, *args, **kwargs):
 
+    def _calculate_percentage(self):
+        """
+        Calcula el porcentaje anual a partir de la vida útil:
+        porcentaje = 100 / vida útil
+        Solo aplica si el tratamiento es DEP o AMO y hay vida útil.
+        """
+        if self.treatment in ('DEP', 'AMO') and self.life_time:
+            pct = Decimal('100') / Decimal(self.life_time)
+            # Redondear a 2 decimales (por ejemplo 16.67)
+            self.percentage = pct.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        else:
+            # Si no aplica, dejamos el porcentaje en null
+            self.percentage = None
+
+    def save(self, *args, **kwargs):
         creating = self.pk is None
+
+        # ✅ Siempre recalculamos el porcentaje antes de guardar
+        self._calculate_percentage()
+
+        # Guardamos para obtener el ID
         super().save(*args, **kwargs)
         
+        # Si es nuevo y no tiene código, lo generamos con el ID
         if creating and not self.code:
             self.set_code()
             super().save(update_fields=["code"])
@@ -122,7 +143,9 @@ class FixedAsset(models.Model):
     def __str__(self):
         dept_code = self.department.code if self.department_id else "----"
         asset_code = self.code or "----"
-        return f"{asset_code}-{dept_code} - {self.name}"
+        asset_type = self.asset_type.code if self.asset_type_id else "----"
+        insti_code = self.department.institution.code if self.department_id and self.department.institution_id else "----"
+        return f"{insti_code}-{dept_code}-{asset_type}-{asset_code} - {self.name}"
 
     def _next_code_for_department(self) -> str:
         """
