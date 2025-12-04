@@ -1,0 +1,143 @@
+/* =======================
+   CONTENEDOR PRINCIPAL
+======================== */
+.depr-container {
+    max-width: 900px;
+    margin: 24px auto 32px;
+    background: #ffffff;
+    border: 1px solid #e3e3e3;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    padding: 20px 24px;
+}
+
+.depr-top-link {
+    max-width: 900px;
+    margin: 0 auto 12px;
+    text-align: left;
+}
+
+.depr-top-link a {
+    padding: 6px 12px;
+    background: #e4e4e4;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 600;
+    border: 1px solid #d1d1d1;
+}
+
+/* =======================
+   ENCABEZADO
+======================== */
+.depr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.depr-header h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 600;
+}
+
+/* =======================
+   FILTRO
+======================== */
+.depr-filter-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.depr-filter-row label {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.depr-filter-row select {
+    min-width: 260px;
+    padding: 4px 6px;
+}
+
+.depr-help {
+    color: #777;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+/* =======================
+   RESULTADOS / TARJETAS
+======================== */
+.depr-results {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.depr-section-title {
+    margin: 16px 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+/* Contenedor de tarjetas */
+.depr-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+}
+
+/* En pantallas medianas/grandes: 2 columnas */
+@media (min-width: 768px) {
+    .depr-cards {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* Tarjeta individual */
+.depr-card {
+    background: #ffffff;
+    border: 1px solid #e3e3e3;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    padding: 12px 14px;
+}
+
+.depr-card h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Mini–tabla dentro de la tarjeta */
+.mini-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.mini-table th,
+.mini-table td {
+    padding: 4px 6px;
+    border-bottom: 1px solid #eee;
+    vertical-align: top;
+}
+
+.mini-table th {
+    text-align: left;
+    width: 45%;
+    color: #555;
+    font-weight: 600;
+}
+
+.mini-table tr:last-child th,
+.mini-table tr:last-child td {
+    border-bottom: none;
+}

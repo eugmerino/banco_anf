@@ -1,0 +1,158 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/reportes.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="depr-top-link">
+    <a href="../">← Volver al menú de reportes</a>
+</div>
+
+<div class="depr-container">
+    <div class="depr-header">
+        <h1>{{ title }}</h1>
+    </div>
+
+    <form method="post" class="form-inline">
+        {% csrf_token %}
+        <fieldset class="module aligned" style="border: none; padding: 0;">
+            <div class="depr-filter-row">
+                <label for="{{ form.fixed_asset.id_for_label }}">
+                    {{ form.fixed_asset.label }}:
+                </label>
+
+                {{ form.fixed_asset }}
+
+                <button type="submit" class="button default">
+                    Buscar
+                </button>
+            </div>
+
+            {% if form.fixed_asset.help_text %}
+                <p class="depr-help">{{ form.fixed_asset.help_text }}</p>
+            {% endif %}
+        </fieldset>
+    </form>
+</div>
+
+<div class="depr-results">
+    {% if table_data %}
+        {% with row=table_data.0 %}
+            <h2 class="depr-section-title">Resumen de depreciación</h2>
+
+            <div class="depr-cards">
+
+                <!-- 🟦 TARJETA 1: Datos generales del activo -->
+                <div class="depr-card">
+                    <h3>Datos del activo</h3>
+                    <table class="mini-table">
+                        <tr>
+                            <th>Código</th>
+                            <td>{{ row.code }}</td>
+                        </tr>
+                        <tr>
+                            <th>Nombre</th>
+                            <td>{{ row.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Departamento</th>
+                            <td>{{ row.department }}</td>
+                        </tr>
+                        <tr>
+                            <th>Costo de adquisición</th>
+                            <td>$ {{ row.cost }}</td>
+                        </tr>
+                        <tr>
+                            <th>Vida útil (años)</th>
+                            <td>{{ row.life_time }}</td>
+                        </tr>
+                        <tr>
+                            <th>Fecha de adquisición</th>
+                            <td>{{ row.acquisition_date }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- 🟦 TARJETA 2: Tasas de depreciación -->
+                <div class="depr-card">
+                    <h3>Tasas de depreciación</h3>
+                    <table class="mini-table">
+                        <tr>
+                            <th>Depreciación anual</th>
+                            <td>$ {{ row.annual_depr }}</td>
+                        </tr>
+                        <tr>
+                            <th>Depreciación mensual</th>
+                            <td>$ {{ row.monthly_depr }}</td>
+                        </tr>
+                        <tr>
+                            <th>Depreciación diaria</th>
+                            <td>$ {{ row.daily_depr }}</td>
+                        </tr>
+                        <tr>
+                            <th>Días de vida útil</th>
+                            <td>{{ row.life_days }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- 🟦 TARJETA 3: Acumulado y valor en libros -->
+                <div class="depr-card">
+                    <h3>Depreciación acumulada</h3>
+                    <table class="mini-table">
+                        <tr>
+                            <th>Días transcurridos</th>
+                            <td>{{ row.elapsed_days }}</td>
+                        </tr>
+                        <tr>
+                            <th>Depreciación acumulada</th>
+                            <td>$ {{ row.accum_depr }}</td>
+                        </tr>
+                        <tr>
+                            <th>Valor en libros</th>
+                            <td>$ {{ row.book_value }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- 🟦 TARJETA 4: Progreso -->
+                <div class="depr-card">
+                    <h3>Progreso de la vida útil</h3>
+                    <table class="mini-table">
+                        <tr>
+                            <th>% de vida consumida</th>
+                            <td>
+                                {% if row.life_days %}
+                                    {{ row.elapsed_days|floatformat:2 }} / {{ row.life_days }} días
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>% del costo depreciado</th>
+                            <td>
+                                {% if row.cost and row.cost != 0 %}
+                                    $ {{ row.accum_depr }} / $ {{ row.cost }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+            </div>
+        {% endwith %}
+    {% else %}
+        <p style="color:#777; margin-top: 8px;">
+            Seleccione un activo fijo y presione <strong>Buscar</strong> para ver los datos.
+        </p>
+    {% endif %}
+</div>
+
+{% endblock %}
