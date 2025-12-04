@@ -125,7 +125,7 @@ class CreditTypeSelect(forms.Select):
 # Admin de Contrato de Crédito
 @admin.register(Credit)
 class CreditAdmin(admin.ModelAdmin):
-    list_display = ("customer", "credit_type", "amount", "status", "credit_date")
+    list_display = ("customer", "credit_type", "amount", "status", "credit_date", "status")
     list_filter = ("credit_type", "status")
     search_fields = ("customer__code", "credit_type__name")
 
@@ -270,10 +270,10 @@ class LoanPaymentInline(admin.TabularInline):
 class LoanInstallmentAdmin(admin.ModelAdmin):
     list_display = (
         "account",
-        "id",
         "due_date",
         "capital",
         "interest",
+        "accrued_interest",
         "late_fees",
         "total_to_pay",
         "paid",
@@ -312,7 +312,7 @@ class LoanInstallmentAdmin(admin.ModelAdmin):
         return False  # no se pueden eliminar
     
     def total_to_pay(self, obj):
-        return obj.capital + obj.interest + obj.late_fees
+        return obj.capital + obj.interest + obj.accrued_interest + obj.late_fees
     
     total_to_pay.short_description = "Total a pagar"
 
@@ -324,7 +324,7 @@ class LoanInstallmentAdmin(admin.ModelAdmin):
 @admin.register(LoanPayment)
 class LoanPaymentAdmin(admin.ModelAdmin):
     form = LoanPaymentForm
-    list_display = ("installment", "payment_date", "amount")
+    list_display = ("installment", "payment_date", "amount", "to_capital", "to_interest", "to_late_fees")
 
     fieldsets = (
         ("Registro de pagos", {
@@ -351,9 +351,9 @@ class LoanPaymentAdmin(admin.ModelAdmin):
         installment = LoanInstallment.objects.get(pk=pk)
         data = {
             "capital": float(installment.capital),
-            "interest": float(installment.interest),
+            "interest": float(installment.interest + installment.accrued_interest),
             "late_fees": float(installment.late_fees),
-            "total": float(installment.capital + installment.interest + installment.late_fees),
+            "total": float(installment.capital + installment.interest + installment.accrued_interest + installment.late_fees),
             "due_date": installment.due_date,
         }
         return JsonResponse(data)

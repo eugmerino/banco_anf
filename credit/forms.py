@@ -45,7 +45,7 @@ class LoanPaymentForm(forms.ModelForm):
         
         # datos de la cuota
         mora = installment.late_fees
-        interes = installment.interest
+        interes = installment.interest + installment.accrued_interest
         capital_cuota = installment.capital
 
         # cuanto del pago cubrirá la cuota

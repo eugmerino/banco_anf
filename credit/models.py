@@ -222,6 +222,23 @@ class Credit(models.Model):
         default="ACTIVE",
         editable=False
     )
+
+    def fixed_installment(self):
+        """
+        Calcula la cuota fija mensual usando el método francés de amortización.
+        Devuelve un Decimal redondeado a 2 decimales.
+        """
+        P = self.amount
+        n = self.quotas
+        annual_rate = self.credit_type.annual_interest_rate
+        r = Decimal(annual_rate) / Decimal(12 * 100) 
+
+        if r == 0:
+            cuota = P / n
+        else:
+            cuota = P * (r * (1 + r) ** n) / ((1 + r) ** n - 1)
+
+        return cuota.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     
 
     class Meta:
@@ -334,7 +351,7 @@ class LoanInstallment(models.Model):
 
     @property
     def total_amount(self):
-        return self.capital + self.interest + self.late_fees
+        return self.capital + self.interest + self.accrued_interest + self.late_fees
     
     def accrue_up_to(self, to_date: date):
         """
@@ -410,8 +427,24 @@ class LoanInstallment(models.Model):
         verbose_name_plural = "Cuotas de Crédito"
         ordering = ["due_date"]
 
+    def installment_number(self):
+        """
+        Retorna el número de esta cuota dentro del crédito, ordenado por due_date.
+        """
+        # Obtener todas las cuotas de este crédito ordenadas por due_date
+        installments = self.account.installments.order_by("due_date")
+        # Buscar el índice de esta cuota
+        for idx, inst in enumerate(installments, start=1):
+            if inst.pk == self.pk:
+                return idx
+        return "?"
+
     def __str__(self):
-        return f"Cuota {self.id} - {self.account.credit}"
+        total = self.account.installments.count()
+        num = self.installment_number()
+        return f"Cuota {num} - {self.account.credit}"
+        return f"Cuota {num} de {total} - {self.account.credit}"
+
     
 
 # Pagos de las cuotas
@@ -432,6 +465,30 @@ class LoanPayment(models.Model):
             Monto total pagado en esta transacción.<br>
             <strong>Si el pago excede la cuota se abona a capital, siempre y caundo no haya mas cuotas pendientes.</strong>
         """)
+    )
+    to_capital = models.DecimalField(
+        "A capital",
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+    to_interest = models.DecimalField(
+        "A intereses",
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+    to_late_fees = models.DecimalField(
+        "A mora",
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+    to_accrued_interest = models.DecimalField(
+        "A ntereses acumulados",
+        max_digits=12,
+        decimal_places=2,
+        default=0
     )
 
     class Meta:
