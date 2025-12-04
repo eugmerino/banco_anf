@@ -7,7 +7,7 @@ from .models import NaturalCustomer, JuridicalCustomer
 # ----------------------------
 @admin.register(NaturalCustomer)
 class NaturalCustomerAdmin(admin.ModelAdmin):
-    list_display = ("code", "first_name", "last_name", "institution", "adviser")
+    list_display = ("code", "classification", "first_name", "last_name", "institution", "adviser")
     list_filter = ("institution", "adviser")
     search_fields = ("code", "first_name", "last_name", "dui")
 

@@ -1,9 +1,10 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal, ROUND_HALF_UP
 from .models import Credit, CreditAccount, LoanInstallment, LoanPayment
 from django.db import transaction
+from django.core.exceptions import ValidationError
 
 
 TWOPLACES = Decimal("0.01")
@@ -123,7 +124,7 @@ def allocate_payment(sender, instance: LoanPayment, created, **kwargs):
         installment.paid = True
         installment.save(update_fields=["paid"])
 
-        # ✅ Generar siguiente cuota aquí, después de actualizar capital_paid
+        # Generar siguiente cuota aquí, después de actualizar capital_paid
         generate_next_installment_after_payment(account, installment)
 
 
@@ -189,3 +190,36 @@ def update_credit_status(sender, instance: CreditAccount, **kwargs):
     if capital_paid >= credit_amount and credit.status != "PAID":
         credit.status = "PAID"
         credit.save(update_fields=["status"])
+
+@receiver(post_save, sender=Credit)
+def update_customer_classification(sender, instance: Credit, created, **kwargs):
+    """
+    Actualiza la clasificación del cliente cuando un crédito cambia a Liquidado.
+    """
+    # Solo actuar si el crédito ya está Liquidado
+    if instance.status != "PAID":
+        return
+
+    customer = instance.customer
+
+    # Traer los últimos 5 créditos del cliente, más recientes primero
+    recent_credits = Credit.objects.filter(customer=customer).order_by('-credit_date')[:5]
+
+    # Contar cuántos créditos tuvieron mora (overdue_events > 0)
+    mora_count = sum(1 for c in recent_credits if hasattr(c, 'account') and c.account.overdue_events > 0)
+
+    # Determinar la nueva clasificación
+    if mora_count == 0:
+        new_class = "A"
+    elif mora_count == 1:
+        new_class = "B"
+    elif mora_count == 2:
+        new_class = "C"
+    else:
+        new_class = "E"
+
+    # Solo actualizar si es diferente
+    if customer.classification != new_class:
+        customer.classification = new_class
+        customer.save(update_fields=["classification"])
+        
