@@ -44,11 +44,14 @@ INSTALLED_APPS = [
     'employee',
     'fixed_asset',
     'customer',
+    'credit.apps.CreditConfig',
+    'django_crontab',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -78,8 +81,17 @@ TEMPLATES = [
 JAZZMIN_SETTINGS = {
     "site_logo": "img/logo/banco_anf.png",
     "icons": {
-        "auth.user": "fas fa-user",
-        "customer.Customer": "fas fa-user",
+        "auth.Group": "fa fa-users",
+        "authentication.User": "fas fa-user",
+        "customer.JuridicalCustomer": "fas fa-building",
+        "customer.NaturalCustomer": "fas fa-user",
+        "credit.Credit": "fas fa-hand-holding-usd",
+        "credit.CreditType": "fas fa-file-invoice-dollar",
+        "credit.Guarantee": "fas fa-shield-alt",
+        "credit.Guarantor": "fas fa-user-shield",
+        "credit.LoanInstallment": "fas fa-file-invoice",
+        "credit.CreditAccount": "fas fa-university",
+        "credit.LoanPayment": "fas fa-cash-register",   
         "employee.CreditAdvisor": "fas fa-user-tie",
     },
     "custom_css": "css/admin_custom.css",
@@ -131,6 +143,13 @@ TIME_ZONE = 'America/El_Salvador'
 USE_I18N = True
 
 USE_TZ = True
+
+
+# CRON JOBS
+CRONJOBS = [
+    ('*/2 * * * *', 'credit.cron.accrue_mora_daily'),  # cada 2 min
+]
+
 
 
 # Static files (CSS, JavaScript, Images)

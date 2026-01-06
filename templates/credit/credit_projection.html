@@ -1,0 +1,134 @@
+{% extends "admin/base_site.html" %}
+
+<!-- titulo de las migajas -->
+{% block content_title %}
+    <h1 class="h4 m-0 pr-3 mr-3 border-right">{{ title }}</h1>
+{% endblock %}
+
+<!-- Información del migajas -->
+{% block breadcrumbs %}
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'admin:index' %}">Inicio</a>
+        </li>
+
+        <li class="breadcrumb-item">
+            <a href="{% url 'admin:credit_credit_changelist' %}">Créditos</a>
+        </li>
+
+        <li class="breadcrumb-item">
+            <a href="{% url 'admin:credit_credit_add' %}">Añadir Contrato de Crédito</a>
+        </li>
+
+        <li class="breadcrumb-item active">Proyección</li>
+    </ol>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- Formulario -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="m-0">Datos para la proyección</h4>
+        </div>
+
+        <div class="p-5 card-body">
+
+            <form method="post">
+                {% csrf_token %}
+
+                <!-- Monto -->
+                <div class="form-group field-amount">
+                    <div class="row">
+                        <label class="col-sm-3 text-left" for="id_amount">
+                            Monto
+                            <span class="text-red">* </span>
+                        </label>
+                        <div class="col-sm-7 field-amount">
+                            {{ form.amount }}
+                            <div class="help-block text-red">
+                                {{ form.amount.errors }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Plazo -->
+                <div class="form-group field-quotas">
+                    <div class="row">
+                        <label class="col-sm-3 text-left" for="id_quotas">
+                            Plazo (meses)
+                            <span class="text-red">* </span>
+                        </label>
+                        <div class="col-sm-7 field-quotas">
+                            {{ form.quotas }}
+                            <div class="help-block">
+                                Número de cuotas, por ejemplo: <strong>12</strong>.
+                            </div>
+                            <div class="help-block text-red">
+                                {{ form.quotas.errors }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interés anual -->
+                <div class="form-group field-annual_interest_rate">
+                    <div class="row">
+                        <label class="col-sm-3 text-left" for="id_annual_interest_rate">
+                            Interés anual (%)
+                            <span class="text-red">* </span>
+                        </label>
+                        <div class="col-sm-7 field-annual_interest_rate">
+                            {{ form.annual_interest_rate }}
+                            <div class="help-block text-red">
+                                {{ form.annual_interest_rate.errors }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary mt-3" type="submit">Calcular</button>
+
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Resultados -->
+    {% if amortization_table %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between ">
+            <h4 class="m-0">Tabla de amortización</h4><p><strong>Cuota fija:</strong> ${{ cuota }}</p>
+        </div>
+        <div class="card-body table-responsive p-0">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Mes</th>
+                        <th>Cuota</th>
+                        <th>Interés</th>
+                        <th>Capital</th>
+                        <th>Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in amortization_table %}
+                    <tr>
+                        <td>{{ row.mes }}</td>
+                        <td>${{ row.cuota }}</td>
+                        <td>${{ row.interes }}</td>
+                        <td>${{ row.capital }}</td>
+                        <td>${{ row.saldo }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

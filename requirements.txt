@@ -1,8 +1,11 @@
 asgiref==3.8.1
 Django==4.2.21
+django-crontab==0.7.1
 django-jazzmin==3.0.1
 pillow==11.2.1
 psycopg2-binary==2.9.9
+python-dateutil==2.9.0.post0
 python-slugify==8.0.4
+six==1.17.0
 sqlparse==0.5.3
 text-unidecode==1.3

@@ -187,6 +187,11 @@ table.dataTable thead th.sorting_desc:before {
     height: auto;
 }
 
+/* ELiminar el pvto h1 que aparece vacio */
+div.col-12.col-md-auto.d-flex.align-items-center > h1:first-child {
+    display: none;
+}
+
 
 
 

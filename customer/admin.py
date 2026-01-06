@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import NaturalCustomer, JuridicalCustomer, Guarantor
+from .models import NaturalCustomer, JuridicalCustomer
 
 
 # ----------------------------
@@ -11,9 +11,22 @@ class NaturalCustomerAdmin(admin.ModelAdmin):
     list_filter = ("institution", "adviser")
     search_fields = ("code", "first_name", "last_name", "dui")
 
+    readonly_fields_base = ("code",)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None:
+            return self.readonly_fields_base
+
+        # Si fue creado y tiene clasificación = "X" → editable
+        if obj.classification == "X":
+            return self.readonly_fields_base
+
+        # Si ya está clasificado con un valor real → readonly
+        return self.readonly_fields_base + ("classification",)
+
     fieldsets = (
         ("Datos de Colocación", {
-            "fields": ("institution", "adviser")
+            "fields": ("institution", "adviser", "code")
         }),
         ("Información Personal", {
             "fields": ("first_name", "last_name", "dui", "marital_status")
@@ -22,7 +35,7 @@ class NaturalCustomerAdmin(admin.ModelAdmin):
             "fields": ("phone_number", "email", "address")
         }),
         ("Finanzas", {
-            "fields": ("income", "expenses")
+            "fields": ("income", "expenses", "classification")
         }),
 
     )
@@ -37,41 +50,30 @@ class JuridicalCustomerAdmin(admin.ModelAdmin):
     list_filter = ("institution", "adviser")
     search_fields = ("code", "company_name")
 
+    readonly_fields_base = ("code",)
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None:
+            return self.readonly_fields_base
+
+        # Si fue creado y tiene clasificación = "X" → editable
+        if obj.classification == "X":
+            return self.readonly_fields_base
+
+        # Si ya está clasificado con un valor real → readonly
+        return self.readonly_fields_base + ("classification",)
+
     fieldsets = (
         ("Datos de Colocación", {
-            "fields": ("institution", "adviser")
+            "fields": ("institution", "adviser", "code")
         }),
         ("Información de la Empresa", {
             "fields": ("company_name", "phone_number", "email", "address")
         }),
         ("Información Financiera", {
-            "fields": ("pdf_financial_information",)
+            "fields": ("pdf_financial_information", "classification",)
         }),
     )
 
-
-# ----------------------------
-# Admin para Fiador
-# ----------------------------
-@admin.register(Guarantor)
-class GuarantorAdmin(admin.ModelAdmin):
-    list_display = ("first_name", "last_name", "customer", "relationship")
-    list_filter = ("customer",)
-    search_fields = ("first_name", "last_name", "dui", "customer__code")
-
-    fieldsets = (
-        ("Datos Personales", {
-            "fields": ("first_name", "last_name", "dui", "marital_status")
-        }),
-        ("Contacto", {
-            "fields": ("phone_number", "email", "address")
-        }),
-        ("Información de la Garantía", {
-            "fields": ("customer", "relationship")
-        }),
-        ("Finanzas", {
-            "fields": ("income", "expenses")
-        }),
-    )
 
 

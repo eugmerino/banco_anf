@@ -1,0 +1,114 @@
+{% extends "admin/base_site.html" %}
+
+<!-- titulo de las migajas -->
+{% block content_title %}
+    <h1 class="h4 m-0 pr-3 mr-3 border-right">{{ title }}</h1>
+{% endblock %}
+
+<!-- Información del migajas -->
+{% block breadcrumbs %}
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a href="{% url 'admin:index' %}">Inicio</a>
+        </li>
+
+        <li class="breadcrumb-item">
+            <a href="{% url 'admin:credit_credit_changelist' %}">Créditos</a>
+        </li>
+
+        <li class="breadcrumb-item">
+            <a href="{% url 'admin:credit_credit_change' credit.id %}">{{ original }}</a>
+        </li>
+
+
+        <li class="breadcrumb-item active">Pronóstico</li>
+    </ol>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <!-- Información del crédito -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="m-0">Información del crédito</h4>
+                </div>
+                <div class="card-body">
+                    <table class="table table-bordered mb-0">
+                        <tbody>
+                            <tr>
+                                <th scope="row" class="w-25">Cliente</th>
+                                <td>{{ credit.customer }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Monto</th>
+                                <td>${{ credit.amount }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Tipo de crédito</th>
+                                <td>{{ credit.credit_type }}</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Plazo</th>
+                                <td>{{ credit.quotas }} meses</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Interés anual</th>
+                                <td>{{ credit.credit_type.annual_interest_rate }}%</td>
+                            </tr>
+                            <tr>
+                                <th scope="row">Cuota fija</th>
+                                <td>$ {{ cuota }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de amortización -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="m-0">Tabla de amortización del crédito</h4>
+                </div>
+
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Mes</th>
+                                <th>Cuota</th>
+                                <th>Interés</th>
+                                <th>Capital</th>
+                                <th>Saldo pendiente</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in amortization_table %}
+                            <tr>
+                                <td>{{ row.mes }}</td>
+                                <td>${{ row.cuota }}</td>
+                                <td>${{ row.interes }}</td>
+                                <td>${{ row.capital }}</td>
+                                <td>${{ row.saldo }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+

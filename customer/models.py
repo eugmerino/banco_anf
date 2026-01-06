@@ -3,6 +3,7 @@ from django.utils import timezone
 from organization.models import Institution
 from employee.models import CreditAdvisor
 from django.core.exceptions import ValidationError
+from django.utils.safestring import mark_safe
 
 
 # Base para datos comunes de un persona natural
@@ -17,12 +18,12 @@ class NaturalPersonBase(models.Model):
     first_name = models.CharField("Nombres", max_length=200)
     last_name = models.CharField("Apellidos", max_length=200)
     dui = models.CharField("DUI", max_length=10, unique=True)
-    marital_status = models.CharField("Estado Civil", max_length=1, choices=MARITAL_STATUS_CHOICES)
+    marital_status = models.CharField("Estado civil", max_length=1, choices=MARITAL_STATUS_CHOICES)
     address = models.TextField("Dirección")
     income = models.DecimalField("Ingresos", max_digits=12, decimal_places=2, default=0.00)
     expenses = models.DecimalField("Egresos", max_digits=12, decimal_places=2, default=0.00)
     phone_number = models.CharField("Teléfono", max_length=15, unique=True)
-    email = models.EmailField("Correo Electrónico", blank=True, null=True)
+    email = models.EmailField("Correo electrónico", blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -30,28 +31,45 @@ class NaturalPersonBase(models.Model):
 
 # Base para datos comunes de un cliente
 class CustomerBase(models.Model):
+    CLASSIFICATION_CHOICES = [
+        ('X', 'Cliente sin clasificar'),
+        ('A', 'Cliente A'),
+        ('B', 'Cliente B'),
+        ('C', 'Cliente C'),
+        ('D', 'Cliente D'),
+        ('E', 'Cliente E'),
+    ]
     code = models.CharField(
-        "Código de Cliente",
+        "Código de cliente",
         max_length=20,
         unique=True,
         editable=False,
-        help_text="El código se genera automáticamente"
+        help_text="El código se genera automáticamente."
     )
     institution = models.ForeignKey(
         Institution,
         on_delete=models.CASCADE,
         verbose_name="Institución",
-        help_text="Sucursal donde se registra el cliente"
+        help_text="Sucursal donde se registra el cliente."
     )
     adviser = models.ForeignKey(
         CreditAdvisor,
         on_delete=models.CASCADE,
-        verbose_name="Asesor de Crédito",
-        help_text="Asesor de crédito asignado al cliente"
+        verbose_name="Asesor de crédito",
+        help_text="Asesor de crédito asignado al cliente."
     )
     phone_number = models.CharField("Teléfono", max_length=15)
-    email = models.EmailField("Correo Electrónico")
+    email = models.EmailField("Correo electrónico")
     address = models.TextField("Dirección")
+    classification = models.CharField("Clasificación del cliente",
+        max_length=1,
+        choices=CLASSIFICATION_CHOICES,
+        default = "X",
+        help_text = mark_safe("""
+            Clasificación en base a evaluación de su información financiera para nuevos clientes.<br>
+            <strong>No se podrá editar manualmente después de clasificarlo.</strong>
+        """)
+    )
 
     class Meta:
         abstract = True
@@ -74,7 +92,7 @@ class NaturalCustomer(CustomerBase, NaturalPersonBase):
             })
 
     def save(self, *args, **kwargs):
-        self.full_clean()  # llama a clean antes de guardar
+        self.full_clean()
         if not self.code:
             today = timezone.localtime().date()
             year = str(today.year)[-2:]
@@ -89,11 +107,11 @@ class NaturalCustomer(CustomerBase, NaturalPersonBase):
 
 # Cliente jurídico
 class JuridicalCustomer(CustomerBase):
-    company_name = models.CharField("Nombre de la Empresa", max_length=200)
+    company_name = models.CharField("Nombre de la empresa", max_length=200)
     pdf_financial_information = models.FileField(
-        "Información Financiera (PDF)",
+        "Información financiera (PDF)",
         upload_to="customer/financial_info/",
-        help_text="Archivo PDF con la información financiera de la empresa"
+        help_text="Archivo PDF con la información financiera de la empresa."
     )
 
     class Meta:
@@ -113,35 +131,3 @@ class JuridicalCustomer(CustomerBase):
     def __str__(self):
         return f"({self.code}) {self.company_name}"
 
-
-# Fiador
-class Guarantor(NaturalPersonBase):
-    customer = models.ForeignKey(
-        NaturalCustomer,
-        on_delete=models.CASCADE,
-        related_name="guarantors",
-        verbose_name="En Garantía de Cliente",
-        help_text="Cliente al que respalda este fiador"
-    )
-    relationship = models.CharField(
-        "Relación con el cliente",
-        max_length=50,
-    )
-
-    class Meta:
-        verbose_name = "Fiador"
-        verbose_name_plural = "Fiadores"
-
-    def clean(self):
-        if self.income <= self.expenses:
-            raise ValidationError({
-                "income": "Los ingresos deben ser mayores a los egresos.",
-                "expenses": "Los egresos no pueden ser mayores que los ingresos."
-            })
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.first_name} {self.last_name} - Fiador de {self.customer}"
